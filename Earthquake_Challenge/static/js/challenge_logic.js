@@ -31,11 +31,13 @@ let baseMaps = {
 // 1. Add a 2nd layer group for the tectonic plate data.
 let allEarthquakes = new L.LayerGroup();
 let tectonicPlates = new L.LayerGroup();
+let majorEarthquakes = new L.LayerGroup();
 
 // 2. Add a reference to the tectonic plates group to the overlays object.
 let overlays = {
   "Earthquakes": allEarthquakes,
-  "Tectonic Plates": tectonicPlates
+  "Tectonic Plates": tectonicPlates,
+  "Major Earthquakes": majorEarthquakes
 };
 
 // Then we add a control to the map that will allow the user to change which
@@ -107,24 +109,68 @@ d3.json("https://earthquake.usgs.gov/earthquakes/feed/v1.0/summary/all_week.geoj
 
   // Then we add the earthquake layer to our map.
   allEarthquakes.addTo(map);
+});
+  d3.json("https://earthquake.usgs.gov/earthquakes/feed/v1.0/summary/4.5_week.geojson").then(function(data) {
+    function styleInfo(feature) {
+      return {
+        opacity: 1,
+        fillOpacity: 1,
+        fillColor: getColor(feature.properties.mag),
+        color: "#000000",
+        radius: getRadius(feature.properties.mag),
+        stroke: true,
+        weight: 0.5
+      };
+    }
+    function getColor(magnitude) {
+      if (magnitude > 6) {
+        return "darkred";
+      }
+      if (magnitude > 5) {
+        return "red";
+      }
+      if (magnitude < 5) {
+        return "red";
+      }
+    }
+      function getRadius(magnitude) {
+        if (magnitude === 0) {
+          return 1;
+        }
+        return magnitude * 4;
+      }
+      L.geoJson(data, {
+        pointToLayer: function(feature, latlng) {
+      		console.log(data);
+      		return L.circleMarker(latlng);
+        },
+        style: styleInfo,
+
+        onEachFeature: function(feature, layer) {
+          layer.bindPopup("Magnitude: " + feature.properties.mag + "<br>Location: " + feature.properties.place);
+        }
+      }).addTo(majorEarthquakes);
+
+      majorEarthquakes.addTo(map);
+    });
 
   // Here we create a legend control object.
-let legend = L.control({
-  position: "bottomright"
-});
-
+  let legend = L.control({
+    position: "bottomright"
+  });
 // Then add all the details for the legend
 legend.onAdd = function() {
   let div = L.DomUtil.create("div", "info legend");
 
-  const magnitudes = [0, 1, 2, 3, 4, 5];
+  const magnitudes = [0, 1, 2, 3, 4, 5, 6];
   const colors = [
     "#98ee00",
     "#d4ee00",
     "#eecc00",
     "#ee9c00",
     "#ea822c",
-    "#ea2c2c"
+    "#ea2c2c",
+    "darkred"
   ];
 
 // Looping through our intervals to generate a label with a colored square for each interval.
@@ -152,5 +198,4 @@ legend.onAdd = function() {
 
     // Then add the tectonic plates layer to our map.
     tectonicPlates.addTo(map); 
-  });
-});
+  });  
